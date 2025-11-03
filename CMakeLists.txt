@@ -6,6 +6,7 @@ set(OpenCV_DIR "C:/opencv/build/x64/vc16/lib") # OpenCV 설치 경로 맞춰주�
 
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
+include_directories("C:/Users/user/Libraries/eigen-5.0.0")
 
 file(GLOB SRC_FILES src/*.cpp)
 
