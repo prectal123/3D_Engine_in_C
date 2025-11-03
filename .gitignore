@@ -1,0 +1,21 @@
+# CMake build folder
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# VS Code
+.vscode/
+
+# Binaries
+*.exe
+*.dll
+*.pdb
+
+# OpenCV generated artifacts (not libs you installed)
+*.obj
+*.lib
+*.log
+*.pch
+*.ilk
