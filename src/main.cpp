@@ -58,7 +58,7 @@ Vector3d detPrint(int index, Vector3d raycast) {
 		
 }
 
-void updateMatrix() {
+void updateMatrix() { // Calculate the coefficients of every pixel rays -> Inefficient, Not used anymore
     for (int i = 0; i < COL; i++) {
         for (int j = 0; j < ROW; j++) {
 			Vector3d raycast = camCenter + delX * (i - (COL / 2)) + delY * (j - (ROW / 2));
@@ -79,7 +79,7 @@ void updateMatrix() {
 
 vector <Vector3d> solvedDels;
 
-void loadSolvedDels() {
+void loadSolvedDels() { // Calculate the coefficients of the camera center ray and x y delta rays. Then linearly combining them generates the pixel ray coefficients
 	solvedDels.clear();
 	Matrix3d vertex;
 	for (int index = 0; index < vertices.size(); index++) {
