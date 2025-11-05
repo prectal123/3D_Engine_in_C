@@ -11,20 +11,34 @@ using namespace cv;
 using namespace std;
 using namespace Eigen;
 
-string canvasName = "영상보기";
+string canvasName = "Window";
 #define ROW 700
 #define COL 700
 #define CHUNK 1
 #define frameRate 1000
 #define PI 3.141592653
 
+double camSpeed = 0.5;
+double camRotationSpeed = 0.01;
+
+double moveForward = 0.0;
+double moveRight = 0.0;
+double moveUp = 0.0;
+
+double SpinRight = 0.0;
+double SpinUp = 0.0;
+
+Point mousePos = Point(500, 500); // Fixed mouse position
+Point canvasPos = Point(200, 200);
+
 Mat canvas(ROW*CHUNK, COL*CHUNK, CV_8UC1, cv::Scalar(255));
 uchar matrix[ROW][COL];
 
 Vector3d camPosition(0.0 , 0.0,15.0);
-Vector3d camCenter(0.0, 0.0, -1);
-Vector3d delX(0.005, 0.0, 0.0);
-Vector3d delY(0.0, 0.005, 0.0);
+
+Vector3d camCenter(0.0, 0.0, -1); // Direct Forward
+Vector3d delX(0.005, 0.0, 0.0); // Direct Right
+Vector3d delY(0.0, 0.005, 0.0); // Direct Up
 
 vector<vector<Vector3d>> vertices;
 vector<Vector3d> normals;
@@ -34,6 +48,40 @@ void randomMatrix() {
     for (int i = 0; i < ROW * COL; i++) {
 		matrix[i / COL][i % COL] = rand() % 256;
     }
+}
+
+Matrix3d camHorizontalRotation(double radian){ // 3x3 Matrix to calculate horizontal rotation
+	double c = cos(radian);
+	double s = sin(radian);
+	Vector3d del = delY.normalized();
+	double x = del[0];
+	double y = del[1];
+	double z = del[2];
+	Matrix3d rot;
+	rot <<
+		c+x*x*(1-c), x*y*(1-c)-z*s, x*z*(1-c)+y*s,
+		y*x*(1-c)+z*s, c+y*y*(1-c), y*z*(1-c)-x*s,
+		z*x*(1-c)-y*s, z*y*(1-c)+x*s, c+z*z*(1-c);
+	// camCenter = rot*camCenter;
+	// delX = rot*delX;
+	return rot;
+}
+
+Matrix3d camVerticalRotation(double radian){ // 3x3 Matrix to calculate vertical rotation
+	double c = cos(radian);
+	double s = sin(radian);
+	Vector3d del = delX.normalized();
+	double x = del[0];
+	double y = del[1];
+	double z = del[2];
+	Matrix3d rot;
+	rot <<
+		c+x*x*(1-c), x*y*(1-c)-z*s, x*z*(1-c)+y*s,
+		y*x*(1-c)+z*s, c+y*y*(1-c), y*z*(1-c)-x*s,
+		z*x*(1-c)-y*s, z*y*(1-c)+x*s, c+z*z*(1-c);
+	// camCenter = rot*camCenter;
+	// delY = rot*delY;
+	return rot;
 }
 
 void updateCanvas() {
@@ -111,6 +159,40 @@ void updateMatrix2() {
 			}
 		}
 	}
+}
+
+void mouseCallback(int event, int x, int y, int flags, void*){
+	if(event == EVENT_MOUSEMOVE){
+		cout << "x : " << x << " y : " << y << endl;
+		int dx = x - mousePos.x;
+		int dy = y - mousePos.y;
+		if(dx==0 && dy==0) return;
+		Matrix3d h = camHorizontalRotation(dx * camRotationSpeed * -1);
+		Matrix3d v = camVerticalRotation(dy * camRotationSpeed * -1);
+
+		camCenter = v * camCenter;
+		camCenter = h * camCenter;
+		delX = h * delX;
+		delY = v * delY;
+		mousePos.x = x;
+		mousePos.y = y;
+	}
+	// SetCursorPos(canvasPos.x + mousePos.x, canvasPos.y + mousePos.y);
+}
+
+bool keyBoardCallback(int key){
+	if(key == 27) return true; // ESC Key to escape :(
+	if(key == 'w') camPosition += camCenter.normalized() * camSpeed;
+	if(key == 's') camPosition -= camCenter.normalized() * camSpeed;
+	if(key == 'a') camPosition -= delX.normalized() * camSpeed;
+	if(key == 'd') camPosition += delX.normalized() * camSpeed;
+	if(key == 'q') camPosition += delY.normalized() * camSpeed;
+	if(key == 'e') camPosition -= delY.normalized() * camSpeed;
+	return false;
+}
+
+void updateDynamicCam(){
+
 }
 
 void updateCam(int lap) {
@@ -252,12 +334,21 @@ int main()
 	start = clock();
     loadVertices();
 	int laps = 1000;
+	namedWindow(canvasName, WINDOW_NORMAL);
+	resizeWindow(canvasName, COL*CHUNK, ROW*CHUNK);
+	moveWindow(canvasName, canvasPos.x, canvasPos.y);
+	SetCursorPos(canvasPos.x + mousePos.x, canvasPos.y + mousePos.y); // Hehe I don't know where to put it
+	setMouseCallback(canvasName, mouseCallback);
 
     while (laps--) {
-		camPosition += Vector3d(0.0, 0.0, -0.1);
-		updateCam(laps);
+		// camPosition += Vector3d(0.0, 0.0, -0.1);
+		// updateCam(laps);
 		updateMatrix2();
 		updateCanvas();
+		
+		
+		int key = waitKey(1);
+    	if(keyBoardCallback(key)) break;
     }
 	end = clock();
 	cout << "Elapsed Time : " << (double)(end - start) << "ms" << endl;
