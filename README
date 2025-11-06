@@ -3,6 +3,10 @@ simulating GPU pipeline manually, supporting OBJ parsing, projection, and shadin
 
 Starting from the very bases, visualizing the 3D world by pixels and math
 
+<img src="images/handcraft1" width="600">
+<img src="images/handcraft2" width="600">
+these drawings, sketches are the ones I made while I was bored in military. This was the very beginning of this project.
+
 TODO : 
 * Fix Sqewing issue
 * Apply partitioning for performance
