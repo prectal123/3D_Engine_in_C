@@ -3,3 +3,7 @@ simulating GPU pipeline manually, supporting OBJ parsing, projection, and shadin
 
 Starting from the very bases, visualizing the 3D world by pixels and math
 
+TODO : 
+* Fix Sqewing issue
+* Apply partitioning for performance
+* Try MultiThreading for performance
