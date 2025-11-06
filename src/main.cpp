@@ -6,6 +6,7 @@
 #include <time.h>
 #include <Eigen/Dense>
 #include <vector>
+#include <fstream>
 
 using namespace cv;
 using namespace std;
@@ -136,7 +137,9 @@ vector <Vector3d> solvedDels;
 void loadSolvedDels() { // Calculate the coefficients of the camera center ray and x y delta rays. Then linearly combining them generates the pixel ray coefficients
 	solvedDels.clear();
 	Matrix3d vertex;
+	
 	for (int index = 0; index < vertices.size(); index++) {
+		// cout << normals[index].dot(camCenter) << ": LOL" << endl;
 		vertex <<
 			vertices[index][0].x() - camPosition.x(), vertices[index][1].x() - camPosition.x(), vertices[index][2].x() - camPosition.x(),
 			vertices[index][0].y() - camPosition.y(), vertices[index][1].y() - camPosition.y(), vertices[index][2].y() - camPosition.y(),
@@ -157,6 +160,7 @@ void updateMatrix2() {
 			matrix[j][i] = 0;
 			double maxCo = -12345678;
 			for (int k = 0; k < vertices.size(); k++) {
+				if(normals[k].dot(camCenter + delX * (i - (COL / 2)) + delY * (j - (ROW / 2))) <= 0.0 ) continue;
 				Vector3d coefficient = solvedDels[k*3 + 2] + solvedDels[k*3] * (i - (COL / 2)) + solvedDels[k*3+1] * (j - (ROW / 2)); /*detPrint(k, raycast);*/
 				if (!(coefficient[0] < 0.0 || coefficient[1] < 0.0 || coefficient[2] < 0.0) && (coefficient[0] + coefficient[1] + coefficient[2]) > maxCo) {
 					matrix[j][i] = colors[k];
@@ -171,7 +175,7 @@ void mouseCallback(int event, int x, int y, int flags, void*){
 	if(event == EVENT_MOUSEMOVE){
 		x = x + canvasBias.x;
 		y = y + canvasBias.y;
-		cout << "x : " << x << " y : " << y << endl;
+		// cout << "x : " << x << " y : " << y << endl;
 		int dx = x - mousePos.x;
 		int dy = y - mousePos.y;
 		if(dx==0 && dy==0) return;
@@ -201,6 +205,46 @@ bool keyBoardCallback(int key){
 
 void updateDynamicCam(){
 
+}
+
+void readModel(){
+
+	vector<Vector3d> dots;
+	ifstream file("");
+	string line;
+
+	while (getline(file, line)) {
+		istringstream iss(line);
+		string type;
+		iss >> type;
+
+		if (type == "v") {
+			double x, y, z;
+			iss >> x >> y >> z;
+			dots.push_back(Eigen::Vector3d(10 * x, -10 * y, 10 * z));
+		}
+		else if (type == "f") {
+			string v1, v2, v3;
+			iss >> v1 >> v2 >> v3;
+
+			auto parseIndex = [](const string& token) {
+				size_t pos = token.find('/');
+				if (pos != string::npos)
+					return stoi(token.substr(0, pos));
+				return stoi(token);
+			};
+			cout << "dots: " << dots.size() << endl;
+
+			cout << "indexs : " << (parseIndex(v1) - 1) << " " << (parseIndex(v2) - 1) << " " << (parseIndex(v3) - 1) << endl;
+			if((parseIndex(v1) - 1) >= dots.size() || (parseIndex(v2) - 1) >= dots.size() || (parseIndex(v3) - 1) >= dots.size()) cout <<"oops" << endl;
+			vector <Vector3d> face = { dots[parseIndex(v1) - 1], dots[parseIndex(v2) - 1], dots[parseIndex(v3) - 1] };
+			vertices.push_back(face);
+			normals.push_back((face[1] - face[0]).cross(face[2] - face[0]));
+			colors.push_back(normals[normals.size()-1].normalized()[1]*127 + 128);
+		}
+	}
+	// cout << "Model Read done. Vertices : " << vertices.size() << " normals : " << normals.size() << " colors: " << colors.size() << endl;
+	cout << "read Donce" <<endl;
 }
 
 void updateCam(int lap) {
@@ -340,7 +384,8 @@ int main()
 {
 	clock_t start, end;
 	start = clock();
-    loadVertices();
+    // loadVertices();
+	readModel();
 	int laps = 1000;
 	namedWindow(canvasName, WINDOW_NORMAL);
 	resizeWindow(canvasName, COL*CHUNK, ROW*CHUNK);
