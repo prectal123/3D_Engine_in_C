@@ -28,8 +28,14 @@ double moveUp = 0.0;
 double SpinRight = 0.0;
 double SpinUp = 0.0;
 
-Point mousePos = Point(500, 500); // Fixed mouse position
+Point mousePos = Point(500, 500); // Fixed mouse position -> Global Position.
+/*
+ There is a UI-Based bias between the position inside the canvas, and the global position of the screen.
+ Even though we set the cursor position as (700,700) and set the canvas position as (200,200), the mouse event become
+ triggered at position (492,469), not (500,500). So this bias needs to be adjusted.
+*/
 Point canvasPos = Point(200, 200);
+Point canvasBias = Point(8,31); // (492,469) + (8,31) => (500,500)
 
 Mat canvas(ROW*CHUNK, COL*CHUNK, CV_8UC1, cv::Scalar(255));
 uchar matrix[ROW][COL];
@@ -163,31 +169,33 @@ void updateMatrix2() {
 
 void mouseCallback(int event, int x, int y, int flags, void*){
 	if(event == EVENT_MOUSEMOVE){
+		x = x + canvasBias.x;
+		y = y + canvasBias.y;
 		cout << "x : " << x << " y : " << y << endl;
 		int dx = x - mousePos.x;
 		int dy = y - mousePos.y;
 		if(dx==0 && dy==0) return;
 		Matrix3d h = camHorizontalRotation(dx * camRotationSpeed * -1);
-		Matrix3d v = camVerticalRotation(dy * camRotationSpeed * -1);
+		Matrix3d v = camVerticalRotation(dy * camRotationSpeed);
 
 		camCenter = v * camCenter;
 		camCenter = h * camCenter;
 		delX = h * delX;
 		delY = v * delY;
-		mousePos.x = x;
-		mousePos.y = y;
+		// mousePos.x = x;
+		// mousePos.y = y;
 	}
-	// SetCursorPos(canvasPos.x + mousePos.x, canvasPos.y + mousePos.y);
+	SetCursorPos(canvasPos.x + mousePos.x, canvasPos.y + mousePos.y);
 }
 
 bool keyBoardCallback(int key){
-	if(key == 27) return true; // ESC Key to escape :(
-	if(key == 'w') camPosition += camCenter.normalized() * camSpeed;
-	if(key == 's') camPosition -= camCenter.normalized() * camSpeed;
-	if(key == 'a') camPosition -= delX.normalized() * camSpeed;
-	if(key == 'd') camPosition += delX.normalized() * camSpeed;
-	if(key == 'q') camPosition += delY.normalized() * camSpeed;
-	if(key == 'e') camPosition -= delY.normalized() * camSpeed;
+	if(GetAsyncKeyState(VK_ESCAPE) & 0x8000) return true; // ESC Key to escape :(
+	if(GetAsyncKeyState('W') & 0x8000) camPosition += camCenter.normalized() * camSpeed;
+	if(GetAsyncKeyState('S') & 0x8000) camPosition -= camCenter.normalized() * camSpeed;
+	if(GetAsyncKeyState('A') & 0x8000) camPosition -= delX.normalized() * camSpeed;
+	if(GetAsyncKeyState('D') & 0x8000) camPosition += delX.normalized() * camSpeed;
+	if(GetAsyncKeyState(VK_SHIFT) & 0x8000) camPosition -= delY.normalized() * camSpeed;
+	if(GetAsyncKeyState(VK_CONTROL) & 0x8000) camPosition += delY.normalized() * camSpeed;
 	return false;
 }
 
