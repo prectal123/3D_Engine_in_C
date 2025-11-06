@@ -1,0 +1,5 @@
+A CPU-based software rasterizer written in C++ and Eigen —
+simulating GPU pipeline manually, supporting OBJ parsing, projection, and shading.\
+
+Starting from the very bases, visualizing the 3D world by pixels and math
+
