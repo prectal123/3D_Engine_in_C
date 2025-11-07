@@ -161,8 +161,9 @@ void fillPartitions(){
 		int minX = 123456789, maxX = -123456789, minY = 123456789, maxY = -123456789;
 		for (int j=0;j<vertices[i].size();j++ ){
 			int delXCount = 0, delYCount = 0;
-			delXCount = (int) (((vertices[i][j] - camPosition).dot(delX)) / delXSize) + ( COL / 2 ); // delSize : 픽셀 한칸의 크기
-			delYCount = (int) (((vertices[i][j] - camPosition).dot(delY)) / delYSize) + ( ROW / 2 );
+			delXCount = (int) ( (((vertices[i][j] - camPosition).dot(delX)) / delXSize)) / (((vertices[i][j] - camPosition).dot(camCenter)))  + ( COL / 2 ) ; // delSize : 픽셀 한칸의 크기
+			delYCount = (int) ((((vertices[i][j] - camPosition).dot(delY)) / delYSize) ) / (((vertices[i][j] - camPosition).dot(camCenter))) + ( ROW / 2 ) ;
+			
 			if(minX > delXCount) minX = delXCount;
 			if(maxX < delXCount) maxX = delXCount;
 			if(minY > delYCount) minY = delYCount;
@@ -172,8 +173,8 @@ void fillPartitions(){
 		// minY++;
 		int minXPart = minX / partitionColSize, maxXpart = maxX / partitionColSize; // Divide by chunk size
 		int minYPart = minY / partitionRowSize, maxYPart = maxY / partitionRowSize;
-
-		cout << "minMAX xy : "<< minXPart << " " << maxXpart << " " << minYPart << " " << maxYPart << endl;
+		// cout << "pixels : " << minX << " " << maxX << " " << minY << " " << maxY << " " << endl;
+		// cout << "minMAX xy : "<< minXPart << " " << maxXpart << " " << minYPart << " " << maxYPart << endl << endl;
 		for(int j = (minXPart>0?minXPart:0) ; j < (maxXpart>=PARTITION_COL?PARTITION_COL:maxXpart+1) ; j++){
 			for(int k = (minYPart>0?minYPart:0) ; k < (maxYPart>=PARTITION_ROW?PARTITION_ROW:maxYPart+1) ; k++){
 				partitions[j][k].push_back(i);
@@ -361,7 +362,7 @@ void loadVertices() {
     temp = { 0.0, -8.0, 0.0 };
     tempList.push_back(temp);
     vertices.push_back(tempList);
-    Vector3d tempNorm = { 0.0, 0.0, 1.0 };
+    Vector3d tempNorm = { 0.0, 0.0, -1.0 };
     normals.push_back(tempNorm);
 	colors.push_back(255);
 
@@ -478,31 +479,31 @@ int main()
 {
 	clock_t start, end;
 	start = clock();
-    loadVertices();
-	// readModel();
-	int laps = 10000;
+    // loadVertices();
+	readModel();
+	int laps = 1000;
 	namedWindow(canvasName, WINDOW_NORMAL);
 	resizeWindow(canvasName, COL*CHUNK, ROW*CHUNK);
-	moveWindow(canvasName, 1000, canvasPos.y);
+	moveWindow(canvasName, canvasPos.x, canvasPos.y);
 
-	namedWindow("TEST", WINDOW_NORMAL);
-	resizeWindow("TEST", COL*CHUNK, ROW*CHUNK);
-	moveWindow("TEST", canvasPos.x, canvasPos.y);
+	// namedWindow("TEST", WINDOW_NORMAL);
+	// resizeWindow("TEST", COL*CHUNK, ROW*CHUNK);
+	// moveWindow("TEST", canvasPos.x, canvasPos.y);
 	
 	SetCursorPos(canvasPos.x + mousePos.x, canvasPos.y + mousePos.y); // Hehe I don't know where to put it
 	setMouseCallback(canvasName, mouseCallback);
-	setMouseCallback("TEST", mouseCallback);
+	// setMouseCallback("TEST", mouseCallback);
 
     while (laps--) {
 		// camPosition += Vector3d(0.0, 0.0, -0.1);
 		// updateCam(laps);
 		updateMatrix3();
-		DrawPartitions();
+		//DrawPartitions();
 		updateCanvas();
 
-		updateMatrix2();
-		DrawPartitions();
-		updateCanvas2();
+		// updateMatrix2();
+		// DrawPartitions();
+		// updateCanvas2();
 		
 		
 		int key = waitKey(1);
