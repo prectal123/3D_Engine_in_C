@@ -19,8 +19,8 @@ string canvasName = "Window";
 #define frameRate 1000
 #define PI 3.141592653
 
-#define PARTITION_ROW 50
-#define PARTITION_COL 50
+#define PARTITION_ROW 10
+#define PARTITION_COL 10
 
 double camSpeed = 0.5;
 double camRotationSpeed = 0.005;
@@ -32,6 +32,9 @@ double moveUp = 0.0;
 double SpinRight = 0.0;
 double SpinUp = 0.0;
 
+int partitionRowSize = ROW / PARTITION_ROW;
+int partitionColSize = COL / PARTITION_COL;
+
 Point mousePos = Point(500, 500); // Fixed mouse position -> Global Position.
 /*
  There is a UI-Based bias between the position inside the canvas, and the global position of the screen.
@@ -41,8 +44,12 @@ Point mousePos = Point(500, 500); // Fixed mouse position -> Global Position.
 Point canvasPos = Point(200, 200);
 Point canvasBias = Point(8,31); // (492,469) + (8,31) => (500,500)
 
+
 Mat canvas(ROW*CHUNK, COL*CHUNK, CV_8UC1, cv::Scalar(255));
+Mat canvas2(ROW*CHUNK, COL*CHUNK, CV_8UC1, cv::Scalar(255));
+
 uchar matrix[ROW][COL];
+vector<int> partitions[PARTITION_COL][PARTITION_ROW];
 
 Vector3d camPosition(0.0 , 0.0,15.0);
 
@@ -105,6 +112,15 @@ void updateCanvas() {
     int key = waitKey(1000 / frameRate);
     if (key == 27) waitKey(0);
 }
+void updateCanvas2() {
+    for (int i = 0; i < COL * ROW * CHUNK * CHUNK; i++) {
+		
+        canvas.at<uchar>(i / (COL * CHUNK), i % (COL * CHUNK)) = matrix[i / (COL * CHUNK * CHUNK)][(i % (COL * CHUNK)) / CHUNK];
+    }
+    imshow("TEST", canvas);
+    int key = waitKey(1000 / frameRate);
+    if (key == 27) waitKey(0);
+}
 
 Vector3d detPrint(int index, Vector3d raycast) {
 	Matrix3d vertex;
@@ -118,6 +134,12 @@ Vector3d detPrint(int index, Vector3d raycast) {
 		
 }
 
+void DrawPartitions(){
+	for(int i=0;i<COL;i++)
+		for(int j=0;j<ROW;j++)
+			if(i%partitionColSize == 0 || j%partitionRowSize == 0) matrix[j][i] = 255;
+}
+
 void unskewBasisVectors(){
 	delY.normalize();
 	camCenter.normalize();
@@ -127,6 +149,37 @@ void unskewBasisVectors(){
 	newDelX.normalize();
 	delX = newDelX;
 	delY = newDelY;
+}
+
+void fillPartitions(){
+
+	for(int i=0;i<PARTITION_COL;i++)
+		for(int j=0;j<PARTITION_ROW;j++)
+			partitions[i][j].clear();
+
+	for(int i=0;i<vertices.size();i++){
+		int minX = 123456789, maxX = -123456789, minY = 123456789, maxY = -123456789;
+		for (int j=0;j<vertices[i].size();j++ ){
+			int delXCount = 0, delYCount = 0;
+			delXCount = (int) (((vertices[i][j] - camPosition).dot(delX)) / delXSize) + ( COL / 2 ); // delSize : 픽셀 한칸의 크기
+			delYCount = (int) (((vertices[i][j] - camPosition).dot(delY)) / delYSize) + ( ROW / 2 );
+			if(minX > delXCount) minX = delXCount;
+			if(maxX < delXCount) maxX = delXCount;
+			if(minY > delYCount) minY = delYCount;
+			if(maxY < delYCount) maxY = delYCount;
+		}
+		// minX++;
+		// minY++;
+		int minXPart = minX / partitionColSize, maxXpart = maxX / partitionColSize; // Divide by chunk size
+		int minYPart = minY / partitionRowSize, maxYPart = maxY / partitionRowSize;
+
+		cout << "minMAX xy : "<< minXPart << " " << maxXpart << " " << minYPart << " " << maxYPart << endl;
+		for(int j = (minXPart>0?minXPart:0) ; j < (maxXpart>=PARTITION_COL?PARTITION_COL:maxXpart+1) ; j++){
+			for(int k = (minYPart>0?minYPart:0) ; k < (maxYPart>=PARTITION_ROW?PARTITION_ROW:maxYPart+1) ; k++){
+				partitions[j][k].push_back(i);
+			}
+		}
+	}
 }
 
 void updateMatrix() { // Calculate the coefficients of every pixel rays -> Inefficient, Not used anymore
@@ -186,6 +239,30 @@ void updateMatrix2() {
 		}
 	}
 }
+
+void updateMatrix3() {
+	loadSolvedDels();
+	fillPartitions();
+	for (int i = 0; i < COL; i++) {
+		for (int j = 0; j < ROW; j++) {
+			matrix[j][i] = 0;
+			double maxCo = -12345678;
+			for (int u = 0; u < partitions[i/partitionColSize][j/partitionRowSize].size(); u++) {
+				int k = partitions[i/partitionColSize][j/partitionRowSize][u];
+				if(normals[k].dot(camCenter + delX * (i - (COL / 2)) * delXSize + delY * (j - (ROW / 2)) * delYSize) <= 0.0 ) continue;
+				Vector3d coefficient = solvedDels[k*3 + 2] + solvedDels[k*3] * (i - (COL / 2)) + solvedDels[k*3+1] * (j - (ROW / 2)); /*detPrint(k, raycast);*/
+				if (!(coefficient[0] < 0.0 || coefficient[1] < 0.0 || coefficient[2] < 0.0) && (coefficient[0] + coefficient[1] + coefficient[2]) > maxCo) {
+					matrix[j][i] = colors[k];
+					maxCo = (coefficient[0] + coefficient[1] + coefficient[2]);
+				}
+			}
+		}
+	}
+}
+
+// Point whichPartition(int x, int y){
+// 	return Point(x/partitionColSize, y/partitionRowSize);
+// }
 
 void mouseCallback(int event, int x, int y, int flags, void*){
 	if(event == EVENT_MOUSEMOVE){
@@ -250,9 +327,9 @@ void readModel(){
 					return stoi(token.substr(0, pos));
 				return stoi(token);
 			};
-			cout << "dots: " << dots.size() << endl;
+			// cout << "dots: " << dots.size() << endl;
 
-			cout << "indexs : " << (parseIndex(v1) - 1) << " " << (parseIndex(v2) - 1) << " " << (parseIndex(v3) - 1) << endl;
+			// cout << "indexs : " << (parseIndex(v1) - 1) << " " << (parseIndex(v2) - 1) << " " << (parseIndex(v3) - 1) << endl;
 			if((parseIndex(v1) - 1) >= dots.size() || (parseIndex(v2) - 1) >= dots.size() || (parseIndex(v3) - 1) >= dots.size()) cout <<"oops" << endl;
 			vector <Vector3d> face = { dots[parseIndex(v1) - 1], dots[parseIndex(v2) - 1], dots[parseIndex(v3) - 1] };
 			vertices.push_back(face);
@@ -261,7 +338,7 @@ void readModel(){
 		}
 	}
 	// cout << "Model Read done. Vertices : " << vertices.size() << " normals : " << normals.size() << " colors: " << colors.size() << endl;
-	cout << "read Donce" <<endl;
+	// cout << "read Donce" <<endl;
 }
 
 void updateCam(int lap) {
@@ -288,133 +365,144 @@ void loadVertices() {
     normals.push_back(tempNorm);
 	colors.push_back(255);
 
-	tempList.clear();
-    temp = { 2.0, 0.0, 10.0 };
-	tempList.push_back(temp);
-	temp = { -1.0, 1.0, -5.0 };
-	tempList.push_back(temp);
-	temp = { -1.0, -1.0, -5.0 };
-	tempList.push_back(temp);
-	vertices.push_back(tempList);
-	tempNorm = { -26.0, 0.0, 6.0 };
-	normals.push_back(tempNorm);
-	colors.push_back(150);
+	// tempList.clear();
+    // temp = { 2.0, 0.0, 10.0 };
+	// tempList.push_back(temp);
+	// temp = { -1.0, 1.0, -5.0 };
+	// tempList.push_back(temp);
+	// temp = { -1.0, -1.0, -5.0 };
+	// tempList.push_back(temp);
+	// vertices.push_back(tempList);
+	// tempNorm = { -26.0, 0.0, 6.0 };
+	// normals.push_back(tempNorm);
+	// colors.push_back(150);
 
-	tempList.clear();
-	temp = { 2.0, 5.0, -5.0 };
-	tempList.push_back(temp);
-	temp = { -5.0, -5.0, -2.0 };
-	tempList.push_back(temp);
-	temp = { 1.0, -1.0, -7.0 };
-	tempList.push_back(temp);
-	vertices.push_back(tempList);
-	tempNorm = { 132.0, -138.0, 20.0 };
-	normals.push_back(tempNorm);
-	colors.push_back(200);
+	// tempList.clear();
+	// temp = { 2.0, 5.0, -5.0 };
+	// tempList.push_back(temp);
+	// temp = { -5.0, -5.0, -2.0 };
+	// tempList.push_back(temp);
+	// temp = { 1.0, -1.0, -7.0 };
+	// tempList.push_back(temp);
+	// vertices.push_back(tempList);
+	// tempNorm = { 132.0, -138.0, 20.0 };
+	// normals.push_back(tempNorm);
+	// colors.push_back(200);
 
-	tempList.clear();
-	temp = { 3.0, 5.0, -7.0 };
-	tempList.push_back(temp);
-	temp = { -3.0, 0.0, -2.0 };
-	tempList.push_back(temp);
-	temp = { 1.0, -6.0, -7.0 };
-	tempList.push_back(temp);
-	vertices.push_back(tempList);
-	tempNorm = { 132.0, -138.0, 20.0 };
-	normals.push_back(tempNorm);
-	colors.push_back(230);
+	// tempList.clear();
+	// temp = { 3.0, 5.0, -7.0 };
+	// tempList.push_back(temp);
+	// temp = { -3.0, 0.0, -2.0 };
+	// tempList.push_back(temp);
+	// temp = { 1.0, -6.0, -7.0 };
+	// tempList.push_back(temp);
+	// vertices.push_back(tempList);
+	// tempNorm = { 132.0, -138.0, 20.0 };
+	// normals.push_back(tempNorm);
+	// colors.push_back(230);
 
-	tempList.clear();
-	temp = { 6.0,1.0, -1.0 };
-	tempList.push_back(temp);
-	temp = { -2.0, -6.0, 0.0 };
-	tempList.push_back(temp);
-	temp = { -2.0, -0.0, -4.0 };
-	tempList.push_back(temp);
-	vertices.push_back(tempList);
-	tempNorm = { 132.0, -138.0, 20.0 };
-	normals.push_back(tempNorm);
-	colors.push_back(50);
+	// tempList.clear();
+	// temp = { 6.0,1.0, -1.0 };
+	// tempList.push_back(temp);
+	// temp = { -2.0, -6.0, 0.0 };
+	// tempList.push_back(temp);
+	// temp = { -2.0, -0.0, -4.0 };
+	// tempList.push_back(temp);
+	// vertices.push_back(tempList);
+	// tempNorm = { 132.0, -138.0, 20.0 };
+	// normals.push_back(tempNorm);
+	// colors.push_back(50);
 
-	tempList.clear();
-	temp = { 5.0, 2.0, -2.0 };
-	tempList.push_back(temp);
-	temp = { -1.0, -1.0, -1.0 };
-	tempList.push_back(temp);
-	temp = { 1.0, -3.0, -3.0 };
-	tempList.push_back(temp);
-	vertices.push_back(tempList);
-	tempNorm = { 132.0, -138.0, 20.0 };
-	normals.push_back(tempNorm);
-	colors.push_back(70);
+	// tempList.clear();
+	// temp = { 5.0, 2.0, -2.0 };
+	// tempList.push_back(temp);
+	// temp = { -1.0, -1.0, -1.0 };
+	// tempList.push_back(temp);
+	// temp = { 1.0, -3.0, -3.0 };
+	// tempList.push_back(temp);
+	// vertices.push_back(tempList);
+	// tempNorm = { 132.0, -138.0, 20.0 };
+	// normals.push_back(tempNorm);
+	// colors.push_back(70);
 
-	tempList.clear();
-	temp = { 7.0, 1.0, -1.0 };
-	tempList.push_back(temp);
-	temp = { -5.0, -3.0, -3.0 };
-	tempList.push_back(temp);
-	temp = { 1.0, -2.0, -7.0 };
-	tempList.push_back(temp);
-	vertices.push_back(tempList);
-	tempNorm = { 132.0, -138.0, 20.0 };
-	normals.push_back(tempNorm);
-	colors.push_back(100);
+	// tempList.clear();
+	// temp = { 7.0, 1.0, -1.0 };
+	// tempList.push_back(temp);
+	// temp = { -5.0, -3.0, -3.0 };
+	// tempList.push_back(temp);
+	// temp = { 1.0, -2.0, -7.0 };
+	// tempList.push_back(temp);
+	// vertices.push_back(tempList);
+	// tempNorm = { 132.0, -138.0, 20.0 };
+	// normals.push_back(tempNorm);
+	// colors.push_back(100);
 
-	tempList.clear();
-	temp = { 1.0, 1.0, 2.0 };
-	tempList.push_back(temp);
-	temp = { 3.0, 5.0, 2.0 };
-	tempList.push_back(temp);
-	temp = { 1.0, 10.0, -2.0 };
-	tempList.push_back(temp);
-	vertices.push_back(tempList);
-	tempNorm = { 132.0, -138.0, 20.0 };
-	normals.push_back(tempNorm);
-	colors.push_back(120);
+	// tempList.clear();
+	// temp = { 1.0, 1.0, 2.0 };
+	// tempList.push_back(temp);
+	// temp = { 3.0, 5.0, 2.0 };
+	// tempList.push_back(temp);
+	// temp = { 1.0, 10.0, -2.0 };
+	// tempList.push_back(temp);
+	// vertices.push_back(tempList);
+	// tempNorm = { 132.0, -138.0, 20.0 };
+	// normals.push_back(tempNorm);
+	// colors.push_back(120);
 
-	tempList.clear();
-	temp = { 4.0, 2.0, -2.0 };
-	tempList.push_back(temp);
-	temp = { -1.0, -5.0, -6.0 };
-	tempList.push_back(temp);
-	temp = { 1.0, -1.0, -12.0 };
-	tempList.push_back(temp);
-	vertices.push_back(tempList);
-	tempNorm = { 132.0, -138.0, 20.0 };
-	normals.push_back(tempNorm);
-	colors.push_back(180);
+	// tempList.clear();
+	// temp = { 4.0, 2.0, -2.0 };
+	// tempList.push_back(temp);
+	// temp = { -1.0, -5.0, -6.0 };
+	// tempList.push_back(temp);
+	// temp = { 1.0, -1.0, -12.0 };
+	// tempList.push_back(temp);
+	// vertices.push_back(tempList);
+	// tempNorm = { 132.0, -138.0, 20.0 };
+	// normals.push_back(tempNorm);
+	// colors.push_back(180);
 
-	tempList.clear();
-	temp = { 1.0, 1.0, 1.0 };
-	tempList.push_back(temp);
-	temp = { 5.0, 5.0, 2.0 };
-	tempList.push_back(temp);
-	temp = { 1.0, -1.0, -7.0 };
-	tempList.push_back(temp);
-	vertices.push_back(tempList);
-	tempNorm = { 132.0, -138.0, 20.0 };
-	normals.push_back(tempNorm);
-	colors.push_back(200);
+	// tempList.clear();
+	// temp = { 1.0, 1.0, 1.0 };
+	// tempList.push_back(temp);
+	// temp = { 5.0, 5.0, 2.0 };
+	// tempList.push_back(temp);
+	// temp = { 1.0, -1.0, -7.0 };
+	// tempList.push_back(temp);
+	// vertices.push_back(tempList);
+	// tempNorm = { 132.0, -138.0, 20.0 };
+	// normals.push_back(tempNorm);
+	// colors.push_back(200);
 };
 
 int main()
 {
 	clock_t start, end;
 	start = clock();
-    // loadVertices();
-	readModel();
-	int laps = 1000;
+    loadVertices();
+	// readModel();
+	int laps = 10000;
 	namedWindow(canvasName, WINDOW_NORMAL);
 	resizeWindow(canvasName, COL*CHUNK, ROW*CHUNK);
-	moveWindow(canvasName, canvasPos.x, canvasPos.y);
+	moveWindow(canvasName, 1000, canvasPos.y);
+
+	namedWindow("TEST", WINDOW_NORMAL);
+	resizeWindow("TEST", COL*CHUNK, ROW*CHUNK);
+	moveWindow("TEST", canvasPos.x, canvasPos.y);
+	
 	SetCursorPos(canvasPos.x + mousePos.x, canvasPos.y + mousePos.y); // Hehe I don't know where to put it
 	setMouseCallback(canvasName, mouseCallback);
+	setMouseCallback("TEST", mouseCallback);
 
     while (laps--) {
 		// camPosition += Vector3d(0.0, 0.0, -0.1);
 		// updateCam(laps);
-		updateMatrix2();
+		updateMatrix3();
+		DrawPartitions();
 		updateCanvas();
+
+		updateMatrix2();
+		DrawPartitions();
+		updateCanvas2();
 		
 		
 		int key = waitKey(1);
