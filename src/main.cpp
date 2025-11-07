@@ -19,8 +19,11 @@ string canvasName = "Window";
 #define frameRate 1000
 #define PI 3.141592653
 
+#define PARTITION_ROW 50
+#define PARTITION_COL 50
+
 double camSpeed = 0.5;
-double camRotationSpeed = 0.01;
+double camRotationSpeed = 0.005;
 
 double moveForward = 0.0;
 double moveRight = 0.0;
@@ -44,8 +47,10 @@ uchar matrix[ROW][COL];
 Vector3d camPosition(0.0 , 0.0,15.0);
 
 Vector3d camCenter(0.0, 0.0, -1); // Direct Forward
-Vector3d delX(0.005, 0.0, 0.0); // Direct Right
-Vector3d delY(0.0, 0.005, 0.0); // Direct Up
+double delXSize = 0.005;
+double delYSize = 0.005;
+Vector3d delX(1.0, 0.0, 0.0); // Direct Right
+Vector3d delY(0.0, 1.0, 0.0); // Direct Up
 
 vector<vector<Vector3d>> vertices;
 vector<Vector3d> normals;
@@ -113,10 +118,21 @@ Vector3d detPrint(int index, Vector3d raycast) {
 		
 }
 
+void unskewBasisVectors(){
+	delY.normalize();
+	camCenter.normalize();
+	Vector3d newDelY = (delY - camCenter * camCenter.dot(delY)).normalized();
+	Vector3d newDelX = camCenter.cross(newDelY); 
+	newDelY.normalize();
+	newDelX.normalize();
+	delX = newDelX;
+	delY = newDelY;
+}
+
 void updateMatrix() { // Calculate the coefficients of every pixel rays -> Inefficient, Not used anymore
     for (int i = 0; i < COL; i++) {
         for (int j = 0; j < ROW; j++) {
-			Vector3d raycast = camCenter + delX * (i - (COL / 2)) + delY * (j - (ROW / 2));
+			Vector3d raycast = camCenter + delX * (i - (COL / 2)) * delXSize + delY * (j - (ROW / 2)) * delYSize;
 			matrix[j][i] = 0;
 			double maxCo = -12345678;
             for (int k = 0; k < vertices.size(); k++) {
@@ -144,9 +160,9 @@ void loadSolvedDels() { // Calculate the coefficients of the camera center ray a
 			vertices[index][0].x() - camPosition.x(), vertices[index][1].x() - camPosition.x(), vertices[index][2].x() - camPosition.x(),
 			vertices[index][0].y() - camPosition.y(), vertices[index][1].y() - camPosition.y(), vertices[index][2].y() - camPosition.y(),
 			vertices[index][0].z() - camPosition.z(), vertices[index][1].z() - camPosition.z(), vertices[index][2].z() - camPosition.z();
-		Vector3d coefficient = vertex.colPivHouseholderQr().solve(delX);
+		Vector3d coefficient = vertex.colPivHouseholderQr().solve(delX * delXSize);
 		solvedDels.push_back(coefficient);
-		coefficient = vertex.colPivHouseholderQr().solve(delY);
+		coefficient = vertex.colPivHouseholderQr().solve(delY * delYSize);
 		solvedDels.push_back(coefficient);
 		coefficient = vertex.colPivHouseholderQr().solve(camCenter);
 		solvedDels.push_back(coefficient);
@@ -160,7 +176,7 @@ void updateMatrix2() {
 			matrix[j][i] = 0;
 			double maxCo = -12345678;
 			for (int k = 0; k < vertices.size(); k++) {
-				if(normals[k].dot(camCenter + delX * (i - (COL / 2)) + delY * (j - (ROW / 2))) <= 0.0 ) continue;
+				if(normals[k].dot(camCenter + delX * (i - (COL / 2)) * delXSize + delY * (j - (ROW / 2)) * delYSize) <= 0.0 ) continue;
 				Vector3d coefficient = solvedDels[k*3 + 2] + solvedDels[k*3] * (i - (COL / 2)) + solvedDels[k*3+1] * (j - (ROW / 2)); /*detPrint(k, raycast);*/
 				if (!(coefficient[0] < 0.0 || coefficient[1] < 0.0 || coefficient[2] < 0.0) && (coefficient[0] + coefficient[1] + coefficient[2]) > maxCo) {
 					matrix[j][i] = colors[k];
@@ -190,6 +206,7 @@ void mouseCallback(int event, int x, int y, int flags, void*){
 		// mousePos.y = y;
 	}
 	SetCursorPos(canvasPos.x + mousePos.x, canvasPos.y + mousePos.y);
+	unskewBasisVectors();
 }
 
 bool keyBoardCallback(int key){
@@ -210,7 +227,7 @@ void updateDynamicCam(){
 void readModel(){
 
 	vector<Vector3d> dots;
-	ifstream file("");
+	ifstream file("C:/Users/user/PrivateProject/CMake_Projects/models/Reshiram.obj");
 	string line;
 
 	while (getline(file, line)) {
