@@ -35,6 +35,8 @@ double SpinUp = 0.0;
 int partitionRowSize = ROW / PARTITION_ROW;
 int partitionColSize = COL / PARTITION_COL;
 
+double scale = 10;
+
 Point mousePos = Point(500, 500); // Fixed mouse position -> Global Position.
 /*
  There is a UI-Based bias between the position inside the canvas, and the global position of the screen.
@@ -261,10 +263,6 @@ void updateMatrix3() {
 	}
 }
 
-// Point whichPartition(int x, int y){
-// 	return Point(x/partitionColSize, y/partitionRowSize);
-// }
-
 void mouseCallback(int event, int x, int y, int flags, void*){
 	if(event == EVENT_MOUSEMOVE){
 		x = x + canvasBias.x;
@@ -305,7 +303,7 @@ void updateDynamicCam(){
 void readModel(){
 
 	vector<Vector3d> dots;
-	ifstream file("C:/Users/user/PrivateProject/CMake_Projects/models/Reshiram.obj");
+	ifstream file("C:/Users/user/PrivateProject/CMake_Projects/models/tree.obj");
 	string line;
 
 	while (getline(file, line)) {
@@ -316,7 +314,7 @@ void readModel(){
 		if (type == "v") {
 			double x, y, z;
 			iss >> x >> y >> z;
-			dots.push_back(Eigen::Vector3d(10 * x, -10 * y, 10 * z));
+			dots.push_back(Eigen::Vector3d(scale * x, -1 * scale * y, scale * z));
 		}
 		else if (type == "f") {
 			string v1, v2, v3;
@@ -365,114 +363,6 @@ void loadVertices() {
     Vector3d tempNorm = { 0.0, 0.0, -1.0 };
     normals.push_back(tempNorm);
 	colors.push_back(255);
-
-	// tempList.clear();
-    // temp = { 2.0, 0.0, 10.0 };
-	// tempList.push_back(temp);
-	// temp = { -1.0, 1.0, -5.0 };
-	// tempList.push_back(temp);
-	// temp = { -1.0, -1.0, -5.0 };
-	// tempList.push_back(temp);
-	// vertices.push_back(tempList);
-	// tempNorm = { -26.0, 0.0, 6.0 };
-	// normals.push_back(tempNorm);
-	// colors.push_back(150);
-
-	// tempList.clear();
-	// temp = { 2.0, 5.0, -5.0 };
-	// tempList.push_back(temp);
-	// temp = { -5.0, -5.0, -2.0 };
-	// tempList.push_back(temp);
-	// temp = { 1.0, -1.0, -7.0 };
-	// tempList.push_back(temp);
-	// vertices.push_back(tempList);
-	// tempNorm = { 132.0, -138.0, 20.0 };
-	// normals.push_back(tempNorm);
-	// colors.push_back(200);
-
-	// tempList.clear();
-	// temp = { 3.0, 5.0, -7.0 };
-	// tempList.push_back(temp);
-	// temp = { -3.0, 0.0, -2.0 };
-	// tempList.push_back(temp);
-	// temp = { 1.0, -6.0, -7.0 };
-	// tempList.push_back(temp);
-	// vertices.push_back(tempList);
-	// tempNorm = { 132.0, -138.0, 20.0 };
-	// normals.push_back(tempNorm);
-	// colors.push_back(230);
-
-	// tempList.clear();
-	// temp = { 6.0,1.0, -1.0 };
-	// tempList.push_back(temp);
-	// temp = { -2.0, -6.0, 0.0 };
-	// tempList.push_back(temp);
-	// temp = { -2.0, -0.0, -4.0 };
-	// tempList.push_back(temp);
-	// vertices.push_back(tempList);
-	// tempNorm = { 132.0, -138.0, 20.0 };
-	// normals.push_back(tempNorm);
-	// colors.push_back(50);
-
-	// tempList.clear();
-	// temp = { 5.0, 2.0, -2.0 };
-	// tempList.push_back(temp);
-	// temp = { -1.0, -1.0, -1.0 };
-	// tempList.push_back(temp);
-	// temp = { 1.0, -3.0, -3.0 };
-	// tempList.push_back(temp);
-	// vertices.push_back(tempList);
-	// tempNorm = { 132.0, -138.0, 20.0 };
-	// normals.push_back(tempNorm);
-	// colors.push_back(70);
-
-	// tempList.clear();
-	// temp = { 7.0, 1.0, -1.0 };
-	// tempList.push_back(temp);
-	// temp = { -5.0, -3.0, -3.0 };
-	// tempList.push_back(temp);
-	// temp = { 1.0, -2.0, -7.0 };
-	// tempList.push_back(temp);
-	// vertices.push_back(tempList);
-	// tempNorm = { 132.0, -138.0, 20.0 };
-	// normals.push_back(tempNorm);
-	// colors.push_back(100);
-
-	// tempList.clear();
-	// temp = { 1.0, 1.0, 2.0 };
-	// tempList.push_back(temp);
-	// temp = { 3.0, 5.0, 2.0 };
-	// tempList.push_back(temp);
-	// temp = { 1.0, 10.0, -2.0 };
-	// tempList.push_back(temp);
-	// vertices.push_back(tempList);
-	// tempNorm = { 132.0, -138.0, 20.0 };
-	// normals.push_back(tempNorm);
-	// colors.push_back(120);
-
-	// tempList.clear();
-	// temp = { 4.0, 2.0, -2.0 };
-	// tempList.push_back(temp);
-	// temp = { -1.0, -5.0, -6.0 };
-	// tempList.push_back(temp);
-	// temp = { 1.0, -1.0, -12.0 };
-	// tempList.push_back(temp);
-	// vertices.push_back(tempList);
-	// tempNorm = { 132.0, -138.0, 20.0 };
-	// normals.push_back(tempNorm);
-	// colors.push_back(180);
-
-	// tempList.clear();
-	// temp = { 1.0, 1.0, 1.0 };
-	// tempList.push_back(temp);
-	// temp = { 5.0, 5.0, 2.0 };
-	// tempList.push_back(temp);
-	// temp = { 1.0, -1.0, -7.0 };
-	// tempList.push_back(temp);
-	// vertices.push_back(tempList);
-	// tempNorm = { 132.0, -138.0, 20.0 };
-	// normals.push_back(tempNorm);
-	// colors.push_back(200);
 };
 
 int main()
