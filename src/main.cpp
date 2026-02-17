@@ -35,7 +35,7 @@ double SpinUp = 0.0;
 int partitionRowSize = ROW / PARTITION_ROW;
 int partitionColSize = COL / PARTITION_COL;
 
-double scale = 10;
+double scale = 0.1;
 
 Point mousePos = Point(500, 500); // Fixed mouse position -> Global Position.
 /*
@@ -58,8 +58,8 @@ Vector3d camPosition(0.0 , 0.0,15.0);
 Vector3d camCenter(0.0, 0.0, -1); // Direct Forward
 double delXSize = 0.005;
 double delYSize = 0.005;
-Vector3d delX(1.0, 0.0, 0.0); // Direct Right
-Vector3d delY(0.0, 1.0, 0.0); // Direct Up
+Vector3d delX(-1.0, 0.0, 0.0); // Direct Right
+Vector3d delY(0.0, -1.0, 0.0); // Direct Up
 
 vector<vector<Vector3d>> vertices;
 vector<Vector3d> normals;
@@ -253,7 +253,7 @@ void updateMatrix3() {
 			for (int u = 0; u < partitions[i/partitionColSize][j/partitionRowSize].size(); u++) {
 				int k = partitions[i/partitionColSize][j/partitionRowSize][u];
 				if(normals[k].dot(camCenter + delX * (i - (COL / 2)) * delXSize + delY * (j - (ROW / 2)) * delYSize) <= 0.0 ) continue;
-				Vector3d coefficient = solvedDels[k*3 + 2] + solvedDels[k*3] * (i - (COL / 2)) + solvedDels[k*3+1] * (j - (ROW / 2)); /*detPrint(k, raycast);*/
+				Vector3d coefficient = solvedDels[k*3 + 2] + solvedDels[k*3] * (i - (COL / 2)) + solvedDels[k*3+1] * (j - (ROW / 2)); 
 				if (!(coefficient[0] < 0.0 || coefficient[1] < 0.0 || coefficient[2] < 0.0) && (coefficient[0] + coefficient[1] + coefficient[2]) > maxCo) {
 					matrix[j][i] = colors[k];
 					maxCo = (coefficient[0] + coefficient[1] + coefficient[2]);
@@ -267,7 +267,6 @@ void mouseCallback(int event, int x, int y, int flags, void*){
 	if(event == EVENT_MOUSEMOVE){
 		x = x + canvasBias.x;
 		y = y + canvasBias.y;
-		// cout << "x : " << x << " y : " << y << endl;
 		int dx = x - mousePos.x;
 		int dy = y - mousePos.y;
 		if(dx==0 && dy==0) return;
@@ -300,10 +299,10 @@ void updateDynamicCam(){
 
 }
 
-void readModel(){
-
+void readModel(){ // Only this funciton was generated with help of ChatGPT. Sorry, it was too boring.
+	
 	vector<Vector3d> dots;
-	ifstream file("C:/Users/user/PrivateProject/CMake_Projects/models/tree.obj");
+	ifstream file("C:/Users/user/PrivateProject/CMake_Projects/models/apple1.obj");
 	string line;
 
 	while (getline(file, line)) {
@@ -314,39 +313,57 @@ void readModel(){
 		if (type == "v") {
 			double x, y, z;
 			iss >> x >> y >> z;
-			dots.push_back(Eigen::Vector3d(scale * x, -1 * scale * y, scale * z));
+			dots.push_back(Eigen::Vector3d(scale * x, scale * y, scale * z));
 		}
 		else if (type == "f") {
-			string v1, v2, v3;
-			iss >> v1 >> v2 >> v3;
 
-			auto parseIndex = [](const string& token) {
-				size_t pos = token.find('/');
-				if (pos != string::npos)
-					return stoi(token.substr(0, pos));
-				return stoi(token);
+		vector<string> tokens;
+		string token;
+		while (iss >> token)
+			tokens.push_back(token);
+
+		if (tokens.size() < 3) return; // 안전장치
+
+		auto parseIndex = [](const string& s) {
+			size_t pos = s.find('/');
+			if (pos != string::npos)
+				return stoi(s.substr(0, pos));
+			return stoi(s);
+		};
+
+		int i0 = parseIndex(tokens[0]) - 1;
+
+		for (int i = 1; i < tokens.size() - 1; i++) {
+
+			int i1 = parseIndex(tokens[i]) - 1;
+			int i2 = parseIndex(tokens[i + 1]) - 1;
+
+			if (i0 >= dots.size() || i1 >= dots.size() || i2 >= dots.size()) continue;
+			vector<Vector3d> face = {
+				dots[i0],
+				dots[i1],
+				dots[i2]
 			};
-			// cout << "dots: " << dots.size() << endl;
 
-			// cout << "indexs : " << (parseIndex(v1) - 1) << " " << (parseIndex(v2) - 1) << " " << (parseIndex(v3) - 1) << endl;
-			if((parseIndex(v1) - 1) >= dots.size() || (parseIndex(v2) - 1) >= dots.size() || (parseIndex(v3) - 1) >= dots.size()) cout <<"oops" << endl;
-			vector <Vector3d> face = { dots[parseIndex(v1) - 1], dots[parseIndex(v2) - 1], dots[parseIndex(v3) - 1] };
 			vertices.push_back(face);
-			normals.push_back((face[1] - face[0]).cross(face[2] - face[0]));
-			colors.push_back(normals[normals.size()-1].normalized()[1]*127 + 128);
+
+			Vector3d normal = (face[2] - face[0]).cross(face[1] - face[0]);
+			normals.push_back(normal);
+
+			colors.push_back(normal.normalized()[1] * -127 + 128);
 		}
 	}
-	// cout << "Model Read done. Vertices : " << vertices.size() << " normals : " << normals.size() << " colors: " << colors.size() << endl;
-	// cout << "read Donce" <<endl;
+	}
 }
 
 void updateCam(int lap) {
 	lap = lap * 30;
-	double R = 10.0;
-	camPosition = Vector3d(0,R*sin(PI*lap / 1000),R*cos(PI*lap / 1000));
-	camCenter = Vector3d(0, -sin(PI * lap / 1000), -cos(PI * lap / 1000));
-	delY = Vector3d(-1.0, 0.0, 0.0) * 0.005;
-	delX = delY.cross(camCenter);
+	double R = 7.0;
+	camPosition = Vector3d(R*sin(PI*lap / 1000), 7, R*cos(PI*lap / 1000));
+	camCenter = Vector3d(R*-sin(PI * lap / 1000), -7, R*-cos(PI * lap / 1000));
+	// delY = Vector3d(-1.0, 0.0, 0.0) * 0.005;
+	// delX = delY.cross(camCenter);
+	unskewBasisVectors();
 }
 //////////////////////////////
 
@@ -365,35 +382,32 @@ void loadVertices() {
 	colors.push_back(255);
 };
 
+void enableDynamicMouseControl(bool mouseOn){
+	if(mouseOn){
+		SetCursorPos(canvasPos.x + mousePos.x, canvasPos.y + mousePos.y); // Hehe I don't know where to put it
+		setMouseCallback(canvasName, mouseCallback);
+	}
+	return;
+};
+
 int main()
 {
 	clock_t start, end;
 	start = clock();
     // loadVertices();
 	readModel();
-	int laps = 1000;
+	int laps = 3000;
 	namedWindow(canvasName, WINDOW_NORMAL);
 	resizeWindow(canvasName, COL*CHUNK, ROW*CHUNK);
 	moveWindow(canvasName, canvasPos.x, canvasPos.y);
 
-	// namedWindow("TEST", WINDOW_NORMAL);
-	// resizeWindow("TEST", COL*CHUNK, ROW*CHUNK);
-	// moveWindow("TEST", canvasPos.x, canvasPos.y);
-	
-	SetCursorPos(canvasPos.x + mousePos.x, canvasPos.y + mousePos.y); // Hehe I don't know where to put it
-	setMouseCallback(canvasName, mouseCallback);
-	// setMouseCallback("TEST", mouseCallback);
+	enableDynamicMouseControl(true);
 
     while (laps--) {
-		// camPosition += Vector3d(0.0, 0.0, -0.1);
 		// updateCam(laps);
 		updateMatrix3();
-		//DrawPartitions();
 		updateCanvas();
-
-		// updateMatrix2();
-		// DrawPartitions();
-		// updateCanvas2();
+		DrawPartitions();
 		
 		
 		int key = waitKey(1);
