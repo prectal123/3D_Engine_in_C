@@ -1,5 +1,18 @@
 # 🧊 Minimal CPU 3D Renderer (C++)
 
+<p align="center">
+  <img src="../CMake_Projects/assets/appleSpin.gif" width="200"/>
+</p>
+<p align="center">
+  <sub>
+    model source :
+    <a href="https://www.turbosquid.com/3d-models/apple-cartoon-3d-1495154">
+      TurboSquid – Apple Cartoon 3D
+    </a>
+  </sub>
+</p>
+---
+
 A lightweight 3D rendering engine built with **C++**, using **Eigen** for matrix computation and **OpenCV** for pixel-level visualization.
 
 This project focuses on implementing the fundamental 3D graphics pipeline from scratch — without GPU APIs like OpenGL or DirectX.
