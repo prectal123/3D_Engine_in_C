@@ -1,9 +1,8 @@
 # 🧊 Minimal CPU 3D Renderer (C++)
 
 <p align="center">
-  <img src="../CMake_Projects/assets/appleSpin.gif" width="200"/>
-</p>
-<p align="center">
+  <img src="https://github.com/user-attachments/assets/d73be983-270d-4fcb-93d6-c1352e2d9a0a" width="300"/>
+  <br/>
   <sub>
     model source :
     <a href="https://www.turbosquid.com/3d-models/apple-cartoon-3d-1495154">
