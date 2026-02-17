@@ -1,4 +1,5 @@
 # 🧊 Minimal CPU 3D Renderer (C++)
+A mathematically-derived CPU ray casting renderer implemented from first principles.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/d73be983-270d-4fcb-93d6-c1352e2d9a0a" width="300"/>
@@ -23,12 +24,17 @@ This project focuses on implementing the fundamental 3D graphics pipeline from s
 This renderer:
 
 - Loads and parses `.obj` 3D model files
-- Applies matrix transformations using **Eigen**
-- Projects 3D coordinates into 2D screen space
-- Renders output using **OpenCV**
-- Runs entirely on a **single-threaded CPU pipeline**
+- Generates per-pixel viewing rays from a virtual camera
+- Computes ray–triangle intersections
+- Determines the closest hit per pixel
+- Shades surfaces using geometric normal information
 
-It is designed as an educational and experimental 3D rendering core that can be extended or adapted for embedded or hardware-constrained environments.
+Unlike traditional rasterization pipelines, this engine does not project polygons directly onto screen space.  
+Instead, it performs per-pixel ray casting from the camera into the scene.
+
+This project originated from a personal mathematical study of 3D space, camera modeling, and geometric visibility.  
+The rendering core was implemented directly from self-derived mathematical formulations rather than adapting an existing graphics API.
+
 
 ---
 
@@ -61,21 +67,28 @@ It is designed as an educational and experimental 3D rendering core that can be 
 - Rotate / translate / inspect model in 3D space
 - Real-time display window via OpenCV
 
+### ✅ Ray Casting Rendering Core
+- Per-pixel ray generation from camera origin
+- Ray–triangle intersection testing
+- Closest-hit depth resolution (no conventional Z-buffer raster stage)
+- Surface shading based on triangle normals
 ---
 
 ## 🧠 Design Philosophy
 
-This project intentionally avoids GPU acceleration to:
+This project began as a mathematical exploration of 3D space representation and camera-based visibility.
 
-- Deeply understand rendering mathematics
-- Control pixel-level behavior manually
-- Maintain portability for experimental or embedded systems
+Before implementation, the rendering process was formally modeled using:
 
-Because it is pure C++, the core logic may be adaptable to:
+- Vector space geometry
+- Parametric ray equations
+- Ray–triangle intersection mathematics
+- Projection derivations from first principles
 
-- Arduino-compatible C++ environments (with heavy constraints)
-- Embedded systems with framebuffer access
-- Custom hardware pipelines
+The repository is being updated alongside documentation that explains the theoretical foundation and derivation process behind the engine.
+
+The goal is not only to render images, but to build and document a rendering system that originates from mathematical theory.
+
 
 > ⚠ Note: Actual portability depends on C++ standard support, available memory, and hardware constraints.
 
@@ -83,11 +96,31 @@ Because it is pure C++, the core logic may be adaptable to:
 
 ## 🧩 Current Limitations
 
+- Brute-force triangle intersection (no BVH acceleration)
 - Single-threaded CPU rendering
-- No GPU acceleration
-- Limited shading
-- No full texture mapping
+- Limited shading model
+- No texture mapping
 - Performance not optimized for large meshes
+
+---
+
+## 📘 Mathematical Documentation
+
+This project is accompanied by a mathematical derivation document:
+
+📄 **Ray Casting Renderer – Mathematical Derivation**  
+[View Documentation](./Mathematical_Raycast_Renderer_Project_OverView.docx)
+
+The document includes:
+
+- Camera coordinate formulation
+- Ray construction from image plane
+- Ray–triangle intersection derivation
+- Closest-hit depth resolution model
+- Geometric reasoning behind the rendering pipeline
+
+The implementation was developed directly from these mathematical formulations.
+
 
 ---
 
