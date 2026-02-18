@@ -109,7 +109,7 @@ The goal is not only to render images, but to build and document a rendering sys
 This project is accompanied by a mathematical derivation document:
 
 📄 **Ray Casting Renderer – Mathematical Derivation**  
-[View Documentation](./Mathematical_Raycast_Renderer_Project_OverView.docx)
+[View Documentation](./Mathematical_Raycast_Renderer_Project_OverView.pdf)
 
 The document includes:
 
